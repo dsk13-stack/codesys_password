@@ -5,7 +5,13 @@ DECODING_KEY = 0xA5
 PASSWORD_PREFIX = "00000001"
 
 
-def codesys_password_decode(hex_list=list) -> str:
+def codesys_password_decode(hex_list=list) -> str: 
+    """
+    Декододирование пароля из hex-списка
+    в строку Ascii
+    :param hex_list: список с закодированными символами в hex формате 
+    :return: Декодированный пароль
+    """
     cracked_password = ""
     for i in hex_list:
         ascii_char = chr(int(i, 16) ^ DECODING_KEY)
@@ -13,7 +19,14 @@ def codesys_password_decode(hex_list=list) -> str:
     return cracked_password
 
 
-def password_line_extract(codesys_file_path):
+def password_data_extract(codesys_file_path=str) -> list:
+    """
+    Извлечение строк содержащих данные о паролях пользователей 
+    по известным признакам начала и конца.
+    Подготавливает список для дальнейшей обработки отбрасывая лишнюю информацию
+    :param codesys_file_path: путь к файлу проекта codesys .pro
+    :return: список содержащий байты данных пароля в hex-формате
+    """
     hex_password_list = []
     with open(codesys_file_path, "rb") as file:
         data = file.readlines()
@@ -45,23 +58,32 @@ def password_line_extract(codesys_file_path):
     return hex_password_list
 
 
-if __name__ == "__main__":
+def passwords_extract(password_list=list):
+    """
+    Функция извлекае пароли пользователь из подготовленного hex-списка и формирует 
+    списки содержащие закодированные пароли
+    :param password_list: список сформированый функцией 
+    :return: закодированный пароль в формате hex-списка 
+    """
+    byte_index = 1
+    password = []
+    while password_list:
+        password_len = int(password_list.pop(0), 16)
+        if 1 < password_len <= len(password_list):
+            while byte_index < password_len:
+                password.append(password_list.pop(0))
+                byte_index += 1
+            print(codesys_password_decode(password))
+            password = []
+            byte_index = 1
+    
 
+if __name__ == "__main__":
     print("Введите путь к файлу проекта .pro")
     path = input()
     try:
-        password_hex_list = password_line_extract(path)
-        byte_index = 1
-        password = []
-        while password_hex_list:
-            password_len = int(password_hex_list.pop(0), 16)
-            if 1 < password_len <= len(password_hex_list):
-                while byte_index < password_len:
-                    password.append(password_hex_list.pop(0))
-                    byte_index += 1
-                print(codesys_password_decode(password))
-                password = []
-                byte_index = 1
+        password_hex_list = password_data_extract(path)
+        passwords_extract(password_hex_list)
     except Exception as e:
         print(e)
     print("Нажмите Enter для выхода")
